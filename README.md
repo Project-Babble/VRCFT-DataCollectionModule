@@ -8,13 +8,9 @@ The `DataCollectionModule` is a module for the VRCFaceTracking framework designe
 - Appends data to an existing CSV file or creates a new one.
 - Includes metadata like image dimensions and Base64-encoded image data.
 
----
-
 ## Installation
 
 Download the module from the module registry within VRCFaceTracking.
-
----
 
 ## Usage
 
@@ -42,8 +38,6 @@ You can find the file under `%AppData%\Roaming\VRCFaceTracking\CustomLibs\{Modul
 - **CaptureFaceImages**: Enable/disable face image capture.  
 - **Append**: Append data to an existing file or overwrite it.
 
----
-
 ### 2. **Starting the Module**
 Once configured, the module initializes automatically when the application starts if properly loaded by `VRCFaceTracking`.
 
@@ -58,8 +52,6 @@ The CSV file contains:
 | Expression1 | Expression2 | EyeImageX | EyeImageY | EyeImageData | FaceImageX | FaceImageY | FaceImageData |
 |-------------|-------------|-----------|-----------|--------------|------------|------------|--------------|
 | 0.5         | 0.7         | 64        | 64        | ...Base64... | 128        | 128        | ...Base64... |
-
----
 
 ## License
 This module is released under the MIT License. See the LICENSE file for details.
