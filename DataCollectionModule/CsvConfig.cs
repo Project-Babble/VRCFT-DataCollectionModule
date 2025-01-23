@@ -9,4 +9,5 @@ public class CsvConfig
     public HashSet<UnifiedExpressions> ExpressionFilter { get; set; } = new();
     public bool CaptureEyeImages { get; set; } = true;
     public bool CaptureFaceImages { get; set; } = true;
+    public bool Append { get; set; } = false;
 }

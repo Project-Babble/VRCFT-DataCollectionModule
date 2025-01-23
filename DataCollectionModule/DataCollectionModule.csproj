@@ -7,6 +7,14 @@
     </PropertyGroup>
 
     <ItemGroup>
+      <None Remove="Spreadsheet.png" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <EmbeddedResource Include="Spreadsheet.png" />
+    </ItemGroup>
+
+    <ItemGroup>
       <ProjectReference Include="..\VRCFaceTracking\VRCFaceTracking.Core\VRCFaceTracking.Core.csproj" />
       <ProjectReference Include="..\VRCFaceTracking\VRCFaceTracking.SDK\VRCFaceTracking.SDK.csproj" />
     </ItemGroup>

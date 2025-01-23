@@ -34,8 +34,18 @@ public class DataCollector : ExtTrackingModule
         }
 
         _config = JsonConvert.DeserializeObject<CsvConfig>(File.ReadAllText(ConfigName))!;
-        _writer = new StreamWriter(Path.Combine(path, _config.FilePath));
+        _writer = new StreamWriter(Path.Combine(path, _config.FilePath), _config.Append);
         _writer?.WriteLine(string.Join(',', AllExpressions) + ",EyeImageX,EyeImageY,EyeImageData,FaceImageX,FaceImageY,FaceImageData");
+
+        List<Stream> list = new List<Stream>();
+        Assembly executingAssembly = Assembly.GetExecutingAssembly();
+        Stream manifestResourceStream = executingAssembly.GetManifestResourceStream("DataCollectionModule.Spreadsheet.png")!;
+        list.Add(manifestResourceStream);
+        ModuleInformation = new ModuleMetadata
+        {
+            Name = "Data Collection Module",
+            StaticImages = list
+        };
 
         _isRunning = true;
         _collectionThread = new Thread(CollectDataLoop);
@@ -128,6 +138,6 @@ public class DataCollector : ExtTrackingModule
     {
         _isRunning = false;
         _collectionThread?.Join();
-        _writer.Dispose();
+        _writer?.Dispose();
     }
 }
