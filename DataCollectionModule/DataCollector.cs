@@ -43,7 +43,13 @@ public class DataCollector : ExtTrackingModule
         _sb = new StringBuilder();
         _config = JsonConvert.DeserializeObject<CsvConfig>(File.ReadAllText(configPath))!;
         _writer = new StreamWriter(Path.Combine(path, _config.FilePath), _config.Append);
-        _writer.WriteLine(string.Join(',', AllExpressions) + ",EyeImageX,EyeImageY,EyeImageData,FaceImageX,FaceImageY,FaceImageData");
+
+        // Don't write the header if we're appending to an existing file
+        // Only write the header if we're writing a new file
+        if (!_config.Append)
+        {
+            _writer.WriteLine(string.Join(',', AllExpressions) + ",EyeImageX,EyeImageY,EyeImageData,FaceImageX,FaceImageY,FaceImageData");
+        }
 
         List<Stream> staticImages = new List<Stream>();
         Stream resourceStream = Assembly.GetExecutingAssembly().GetManifestResourceStream("DataCollectionModule.Spreadsheet.png")!;
