@@ -11,4 +11,8 @@
       <ProjectReference Include="..\VRCFaceTracking\VRCFaceTracking.SDK\VRCFaceTracking.SDK.csproj" />
     </ItemGroup>
 
+    <Target Name="PostBuild" AfterTargets="PostBuildEvent">
+      <Exec Command="xcopy &quot;$(TargetDir)\DataCollectionModule.dll&quot; &quot;%25AppData%25\VRCFaceTracking\CustomLibs&quot; /Y /R /I" />
+    </Target>
+
 </Project>

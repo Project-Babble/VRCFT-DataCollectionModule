@@ -1,82 +1,133 @@
-﻿using System.Timers;
+﻿using Newtonsoft.Json;
+using System.Reflection;
+using System.Text;
 using VRCFaceTracking;
-using Timer = System.Timers.Timer;
+using VRCFaceTracking.Core.Params.Expressions;
 
-namespace DataCollectionModule
+namespace DataCollectionModule;
+
+public class DataCollector : ExtTrackingModule
 {
-    public class DataCollector : ExtTrackingModule
+    private CsvConfig _config;
+    private StreamWriter? _writer;
+    private Thread? _collectionThread;
+    private bool _isRunning = true;
+
+    private static readonly UnifiedExpressions[] AllExpressions = Enum.GetValues<UnifiedExpressions>();
+    private static readonly StringBuilder sb = new StringBuilder();
+
+    public override (bool SupportsEye, bool SupportsExpression) Supported => (true, true);
+
+    public override (bool eyeSuccess, bool expressionSuccess) Initialize(bool eyeAvailable, bool expressionAvailable)
     {
-        private readonly StreamWriter _writer;
-        private readonly CsvConfig _config;
-        private Timer? _collectionTimer;
-        
+        if (!eyeAvailable && !expressionAvailable)
+            return (false, false);
 
-        public DataCollector(CsvConfig config)
+        var path = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)!;
+        var ConfigName = Path.Combine(path, "DataCollectionConfig.json");
+
+        if (!File.Exists(ConfigName))
         {
-            _config = config;
-            _writer = new StreamWriter(_config.FilePath, append: true);
-        }
-        
-        public override (bool SupportsEye, bool SupportsExpression) Supported => (true, true);
-
-        public override (bool eyeSuccess, bool expressionSuccess) Initialize(bool eyeAvailable, bool expressionAvailable)
-        {
-            if (!eyeAvailable && !expressionAvailable)
-                return (false, false);
-
-            _collectionTimer = new Timer(_config.CollectionInterval * 1000);
-            _collectionTimer.Elapsed += CollectData;
-            _collectionTimer.Start();
-
-            return Supported;
+            var emptyConfig = new CsvConfig();
+            var emptyConfigJson = JsonConvert.SerializeObject(emptyConfig);
+            File.WriteAllText(ConfigName, emptyConfigJson);
         }
 
-        private void CollectData(object? sender, ElapsedEventArgs e)
+        _config = JsonConvert.DeserializeObject<CsvConfig>(File.ReadAllText(ConfigName))!;
+        _writer = new StreamWriter(Path.Combine(path, _config.FilePath));
+        _writer?.WriteLine(string.Join(',', AllExpressions) + ",EyeImageX,EyeImageY,EyeImageData,FaceImageX,FaceImageY,FaceImageData");
+
+        _isRunning = true;
+        _collectionThread = new Thread(CollectDataLoop);
+        _collectionThread.Start();
+
+        return Supported;
+    }
+
+    private void CollectDataLoop()
+    {
+        while (_isRunning)
         {
             try
             {
-                var expressions = UnifiedTracking.Data.Shapes;
-                var eyeImageData = UnifiedTracking.EyeImageData;
-                var lipImageData = UnifiedTracking.LipImageData;
-                
-                foreach (var key in _config.ExpressionFilter)
-                {
-                    _writer.Write($"{nameof(key)}, {expressions[(int)key].Weight},");
-                }
-                
-                if (_config.CaptureEyeImages && eyeImageData.SupportsImage)
-                {
-                    _writer.Write($"EyeImageX,{eyeImageData.ImageSize.x},");
-                    _writer.Write($"EyeImageY,{eyeImageData.ImageSize.y},");
-                    _writer.Write($"EyeImageData,{Convert.ToBase64String(eyeImageData.ImageData)},");
-                }
-
-                if (_config.CaptureFaceImages && lipImageData.SupportsImage)
-                {
-                    _writer.Write($"FaceImageX,{lipImageData.ImageSize.x},");
-                    _writer.Write($"FaceImageY,{lipImageData.ImageSize.y},");
-                    _writer.Write($"FaceImageData,{Convert.ToBase64String(lipImageData.ImageData)},");
-                }
-
-                _writer.WriteLine();
-                
+                CollectData();
+                Thread.Sleep(_config.CollectionInterval);
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error collecting data: {ex.Message}");
+                Console.WriteLine($"Error in data collection loop: {ex.Message}");
             }
         }
+    }
 
-        public override void Update()
-        {
-            // Not used directly as data collection is timer-driven.
-        }
+    private void CollectData()
+    {
+        var expressions = UnifiedTracking.Data.Shapes;
+        var eyeImage = UnifiedTracking.EyeImageData;
+        var faceImage = UnifiedTracking.LipImageData;
 
-        public override void Teardown()
+        try
         {
-            _collectionTimer?.Stop();
-            _collectionTimer?.Dispose();
-            _writer.Dispose();
+            sb.Clear();
+            if (_config.ExpressionFilter.Count > 0)
+            {
+                foreach (var key in _config.ExpressionFilter)
+                {
+                    sb.Append($"{expressions[(int)key].Weight},");
+                }
+            }
+            else
+            {
+                foreach (var key in AllExpressions)
+                {
+                    sb.Append($"{expressions[(int)key].Weight},");
+                }
+            }
+
+            if (_config.CaptureEyeImages && eyeImage.SupportsImage)
+            {
+                sb.Append($"{eyeImage.ImageSize.x}");
+                sb.Append($"{eyeImage.ImageSize.y}");
+                sb.Append($"{Convert.ToBase64String(eyeImage.ImageData)}");
+            }
+            else
+            {
+                sb.Append("-1,");
+                sb.Append("-1,");
+                sb.Append("-1,");
+            }
+
+            if (_config.CaptureFaceImages && faceImage.SupportsImage)
+            {
+                sb.Append($"{eyeImage.ImageSize.x}");
+                sb.Append($"{eyeImage.ImageSize.y}");
+                sb.Append($"{Convert.ToBase64String(faceImage.ImageData)},");
+            }
+            else
+            {
+                sb.Append("-1,");
+                sb.Append("-1,");
+                sb.Append("-1,");
+            }
+
+            // Write the collected data as a single line
+            _writer?.WriteLine(sb.ToString().TrimEnd(','));
         }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error collecting data: {ex.Message}");
+        }
+    }
+
+    public override void Update()
+    {
+        // Not used directly as data collection is thread-driven.
+    }
+
+    public override void Teardown()
+    {
+        _isRunning = false;
+        _collectionThread?.Join();
+        _writer.Dispose();
     }
 }
