@@ -10,4 +10,6 @@ public class CsvConfig
     public bool CaptureEyeImages { get; set; } = true;
     public bool CaptureFaceImages { get; set; } = true;
     public bool Append { get; set; } = false;
+    
+    public CsvConfig() { }
 }

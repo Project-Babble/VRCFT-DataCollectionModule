@@ -17,6 +17,8 @@ public class DataCollector : ExtTrackingModule
     private StringBuilder? _sb;
     private bool _isRunning = true;
     
+    public DataCollector() { }
+    
     public override (bool SupportsEye, bool SupportsExpression) Supported => (true, true);
 
     public override (bool eyeSuccess, bool expressionSuccess) Initialize(bool eyeAvailable, bool expressionAvailable)
